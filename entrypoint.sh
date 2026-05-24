@@ -58,8 +58,12 @@ if [[ "$AUTHORIZED" == "false" && "$ACTOR" != "github-actions[bot]" ]]; then
     git reset --hard HEAD~1
     
     echo "Setting up secure remote origin with GH_PAT..."
-    # تم تصحيح سطر الـ URL هنا بدقة:
-    git remote set-url origin "https://x-access-token:${GH_PAT}@://github.com{REPOSITORY}.git"
+# 1. صياغة الرابط في متغير منفصل أولاً لتفادي أخطاء القراءة داخل بيئة Docker
+  REMOTE_URL="https://x-access-token:${GH_PAT}@://github.com{REPOSITORY}.git"
+
+# 2. تعيين الرابط الجديد والمضمون 100% لعمل الـ Push
+   git remote set-url origin "$REMOTE_URL"
+
     
     echo "Pushing the hard reset back to origin branch: $TARGET_BRANCH..."
     git push origin "$TARGET_BRANCH" --force

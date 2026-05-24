@@ -1,0 +1,24 @@
+name: 'Codewall Authorization'
+description: 'Restricts branch pushes based on separate role lists'
+inputs:
+  branch:
+    description: 'The target branch being pushed to'
+    required: true
+  team_leaders:
+    description: 'Comma-separated list of Team Leaders'
+    required: false
+    default: ''
+  devops:
+    description: 'Comma-separated list of DevOps users'
+    required: false
+    default: ''
+  developers:
+    description: 'Comma-separated list of Developers'
+    required: false
+    default: ''
+  pat:
+    description: 'GitHub Personal Access Token for reverting unauthorized commits'
+    required: true
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

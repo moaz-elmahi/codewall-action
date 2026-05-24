@@ -1,16 +1,13 @@
 #!/bin/bash
 set -e
 
-# 1. قراءة المدخلات والمغيرات البيئية
+# 1. قراءة المدخلات الأساسية
 TARGET_BRANCH="${INPUT_BRANCH}"
 TEAM_LEADERS="${INPUT_TEAM_LEADERS}"
 DEVOPS_USERS="${INPUT_DEVOPS}"
 DEVELOPERS_LIST="${INPUT_DEVELOPERS}"
 GH_PAT="${INPUT_PAT}"
 ACTOR="${GITHUB_ACTOR}"
-
-# استخدام مغير نظام GitHub المباشر لتفادي مشكلة الاختفاء داخل Docker
-REPO_NAME="${GITHUB_REPOSITORY}" 
 
 echo "======================================================"
 echo "Checking CodeWall Protection for User: $ACTOR"
@@ -55,7 +52,7 @@ if [[ "$AUTHORIZED" == "false" && "$ACTOR" != "github-actions[bot]" ]]; then
     echo "Starting automated revert process for $ACTOR..."
     echo "------------------------------------------------------"
     
-    # تهيئة إعدادات Git داخل الـ Runner
+    # تهيئة إعدادات Git داخل الـ Runner لتفادي مشاكل المجلدات الآمنة
     git config --global user.name "github-actions[bot]"
     git config --global user.email "github-actions[bot]@users.noreply.github.com"
     git config --global --add safe.directory /github/workspace
@@ -65,8 +62,13 @@ if [[ "$AUTHORIZED" == "false" && "$ACTOR" != "github-actions[bot]" ]]; then
     git reset --hard HEAD~1
     
     echo "Setting up secure remote origin with GH_PAT..."
-    # صياغة الرابط الجديد المباشر بدون استخدام المتغير المسبب للمشكلة
-    git remote set-url origin "https://x-access-token:${GH_PAT}@://github.com{REPO_NAME}.git"
+    
+    # [تعديل جوهري]: جلب الرابط الحالي للمشروع من Git مباشرة وتعديله بالتوكن بدلاً من كتابة المتغيرات يدوياً
+    ORIGINAL_URL=$(git remote get-url origin)
+    # تحويل الرابط من الصيغة العادية إلى صيغة تحتوى على الـ PAT token الخاص بك
+    SECURE_URL=$(echo "$ORIGINAL_URL" | sed -E "s|https://[^@]+@|https://|g" | sed -E "s|https://|https://x-access-token:${GH_PAT}@|g")
+    
+    git remote set-url origin "$SECURE_URL"
     
     echo "Pushing the hard reset back to origin branch: $TARGET_BRANCH..."
     git push origin "$TARGET_BRANCH" --force

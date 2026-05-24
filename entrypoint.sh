@@ -1,13 +1,16 @@
 #!/bin/bash
 set -e
 
+# 1. قراءة المدخلات والمغيرات البيئية
 TARGET_BRANCH="${INPUT_BRANCH}"
 TEAM_LEADERS="${INPUT_TEAM_LEADERS}"
 DEVOPS_USERS="${INPUT_DEVOPS}"
 DEVELOPERS_LIST="${INPUT_DEVELOPERS}"
 GH_PAT="${INPUT_PAT}"
 ACTOR="${GITHUB_ACTOR}"
-REPOSITORY="${GITHUB_REPOSITORY}"
+
+# استخدام مغير نظام GitHub المباشر لتفادي مشكلة الاختفاء داخل Docker
+REPO_NAME="${GITHUB_REPOSITORY}" 
 
 echo "======================================================"
 echo "Checking CodeWall Protection for User: $ACTOR"
@@ -16,6 +19,7 @@ echo "======================================================"
 
 USER_ROLE="unauthorized"
 
+# 2. تحديد دور المستخدم بناءً على القوائم
 if [[ " ,${TEAM_LEADERS}, " == *",${ACTOR},"* ]]; then
     USER_ROLE="team_leader"
 elif [[ " ,${DEVOPS_USERS}, " == *",${ACTOR},"* ]]; then
@@ -28,6 +32,7 @@ echo "Identified Role for $ACTOR: $USER_ROLE"
 
 AUTHORIZED="false"
 
+# 3. فحص الصلاحيات
 if [[ "$USER_ROLE" == "team_leader" || "$USER_ROLE" == "devops" ]]; then
     echo "Access granted: $USER_ROLE has bypass permissions to all branches."
     AUTHORIZED="true"
@@ -44,11 +49,13 @@ else
     AUTHORIZED="false"
 fi
 
+# 4. تفعيل آلية الـ Revert والتراجع الإجباري
 if [[ "$AUTHORIZED" == "false" && "$ACTOR" != "github-actions[bot]" ]]; then
     echo "------------------------------------------------------"
     echo "Starting automated revert process for $ACTOR..."
     echo "------------------------------------------------------"
     
+    # تهيئة إعدادات Git داخل الـ Runner
     git config --global user.name "github-actions[bot]"
     git config --global user.email "github-actions[bot]@users.noreply.github.com"
     git config --global --add safe.directory /github/workspace
@@ -58,12 +65,8 @@ if [[ "$AUTHORIZED" == "false" && "$ACTOR" != "github-actions[bot]" ]]; then
     git reset --hard HEAD~1
     
     echo "Setting up secure remote origin with GH_PAT..."
-# 1. صياغة الرابط في متغير منفصل أولاً لتفادي أخطاء القراءة داخل بيئة Docker
-  REMOTE_URL="https://x-access-token:${GH_PAT}@://github.com{REPOSITORY}.git"
-
-# 2. تعيين الرابط الجديد والمضمون 100% لعمل الـ Push
-   git remote set-url origin "$REMOTE_URL"
-
+    # صياغة الرابط الجديد المباشر بدون استخدام المتغير المسبب للمشكلة
+    git remote set-url origin "https://x-access-token:${GH_PAT}@://github.com{REPO_NAME}.git"
     
     echo "Pushing the hard reset back to origin branch: $TARGET_BRANCH..."
     git push origin "$TARGET_BRANCH" --force

@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-
 TARGET_BRANCH="${INPUT_BRANCH}"
 TEAM_LEADERS="${INPUT_TEAM_LEADERS}"
 DEVOPS_USERS="${INPUT_DEVOPS}"
@@ -15,9 +14,7 @@ echo "Checking CodeWall Protection for User: $ACTOR"
 echo "Target Branch: $TARGET_BRANCH"
 echo "======================================================"
 
-
 USER_ROLE="unauthorized"
-
 
 if [[ " ,${TEAM_LEADERS}, " == *",${ACTOR},"* ]]; then
     USER_ROLE="team_leader"
@@ -30,7 +27,6 @@ fi
 echo "Identified Role for $ACTOR: $USER_ROLE"
 
 AUTHORIZED="false"
-
 
 if [[ "$USER_ROLE" == "team_leader" || "$USER_ROLE" == "devops" ]]; then
     echo "Access granted: $USER_ROLE has bypass permissions to all branches."
@@ -48,24 +44,21 @@ else
     AUTHORIZED="false"
 fi
 
-
 if [[ "$AUTHORIZED" == "false" && "$ACTOR" != "github-actions[bot]" ]]; then
     echo "------------------------------------------------------"
     echo "Starting automated revert process for $ACTOR..."
     echo "------------------------------------------------------"
     
- 
     git config --global user.name "github-actions[bot]"
-    git config --global user.email "github-actions[bot]@://github.com"
+    git config --global user.email "github-actions[bot]@users.noreply.github.com"
     git config --global --add safe.directory /github/workspace
     git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
 
     echo "Executing local hard reset to HEAD~1..."
     git reset --hard HEAD~1
     
-   
     echo "Setting up secure remote origin with GH_PAT..."
+    # تم تصحيح سطر الـ URL هنا بدقة:
     git remote set-url origin "https://x-access-token:${GH_PAT}@://github.com{REPOSITORY}.git"
     
     echo "Pushing the hard reset back to origin branch: $TARGET_BRANCH..."
